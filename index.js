@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const connectDB = require("./Config/dbConfig");
 require("dotenv").config();
 
+// Middleware
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 connectDB();
