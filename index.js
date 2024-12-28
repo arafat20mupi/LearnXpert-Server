@@ -4,6 +4,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const connectDB = require("./Config/dbConfig");
 require("dotenv").config();
+const userRoutes = require("./User/UserRoute");
 
 // Middleware
 app.use(bodyParser.json());
@@ -18,6 +19,10 @@ app.use(
 );
 
 app.use(express.json());
+
+// Import routes
+
+app.use( '/api' , userRoutes)
 
 //  Home route
 app.get("/", (req, res) => {
