@@ -1,25 +1,42 @@
 const admin = require("firebase-admin");
 const User = require("./UserSchema");
 
-// Register User
+
 exports.register = async (req, res) => {
     const { name, email, password, role } = req.body;
+
+    // Validate incoming request
+    if (!name || !email || !password || !role) {
+        return res.status(400).json({ error: "Missing required fields" });
+    }
+
     try {
+        // Create Firebase user
         const firebaseUser = await admin.auth().createUser({
             email: email,
             password: password,
+            displayName: name,
         });
+        console.log("Firebase user created:", firebaseUser);
 
+        // Set custom claims for role
+        await admin.auth().setCustomUserClaims(firebaseUser.uid, { role });
+
+
+
+        // Create and save user in MongoDB
         const user = new User({
             name,
             email,
             password,
             role,
-            firebaseUid: firebaseUser.uid,
+            firebaseUid: firebaseUser.uid, // Correct UID usage
         });
         await user.save();
+
         res.status(200).send("User is registered");
     } catch (error) {
+        console.error("Error registering user:", error);
         res.status(400).json({ error: error.message });
     }
 };
@@ -41,16 +58,12 @@ exports.login = async (req, res) => {
         // Role-based login logic
         switch (user.role) {
             case "admin":
-                // Admin-specific logic
                 break;
             case "teacher":
-                // Teacher-specific logic
                 break;
             case "student":
-                // Student-specific logic
                 break;
             case "parent":
-                // Parent-specific logic
                 break;
             default:
                 return res.status(400).send("Invalid role");
