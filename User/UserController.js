@@ -1,45 +1,33 @@
 const admin = require("firebase-admin");
 const User = require("./UserSchema");
 
-
 exports.register = async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { email, password, name, role, uid } = req.body;
 
-    // Validate incoming request
-    if (!name || !email || !password || !role) {
-        return res.status(400).json({ error: "Missing required fields" });
+    console.log(req.body);
+    if (!email || !password || !name || !role || !uid) {
+        return res.status(400).json({ message: "Missing required fields" });
     }
-
     try {
-        // Create Firebase user
-        const firebaseUser = await admin.auth().createUser({
-            email: email,
-            password: password,
-            displayName: name,
-        });
-        console.log("Firebase user created:", firebaseUser);
 
-        // Set custom claims for role
-        await admin.auth().setCustomUserClaims(firebaseUser.uid, { role });
-
-
-
-        // Create and save user in MongoDB
-        const user = new User({
+        // Create user in your MongoDB database
+        const newUser = new User({
             name,
             email,
             password,
             role,
-            firebaseUid: firebaseUser.uid, // Correct UID usage
+            firebaseUid: uid,
         });
-        await user.save();
 
-        res.status(200).send("User is registered");
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
-        console.error("Error registering user:", error);
-        res.status(400).json({ error: error.message });
+        console.error("Error during registration:", error);
+        res.status(500).json({ message: "Server error during user registration" });
     }
-};
+}
+
+
 
 // Login User
 exports.login = async (req, res) => {
@@ -49,27 +37,11 @@ exports.login = async (req, res) => {
 
         if (!user) return res.status(400).send("User not found");
 
-        if (user.status !== "active") return res.status(403).send("User is inactive");
-
         const isMatch = await user.comparePassword(password);
 
         if (!isMatch) return res.status(400).send("Invalid credentials");
 
-        // Role-based login logic
-        switch (user.role) {
-            case "admin":
-                break;
-            case "teacher":
-                break;
-            case "student":
-                break;
-            case "parent":
-                break;
-            default:
-                return res.status(400).send("Invalid role");
-        }
-
-        res.status(200).json({ user, role: user.role });
+        res.status(200).json(user);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -78,17 +50,28 @@ exports.login = async (req, res) => {
 // Get All Users
 exports.getAllUsers = async (req, res) => {
     try {
+        // Firebase theke users niye asha
         const listUsersResult = await admin.auth().listUsers();
-        const firebaseUsers = listUsersResult.users;
-        res.status(200).json({ firebaseUsers });
+        const firebaseUsers = listUsersResult.users; // Firebase er users array
+
+        // MongoDB theke users niye asha
+        let dbUsers = [];
+        try {
+            dbUsers = await User.find(); // User hocche apnar MongoDB user model
+        } catch (dbError) {
+            console.error("Database error:", dbError);
+        }
+
+        // Firebase ebong MongoDB users ke ek sathe response er maddhome pathano
+        res.status(200).json({ firebaseUsers, dbUsers });
     } catch (error) {
         console.error("Firebase user error:", error);
         res.status(500).json({ error: error.message });
     }
 };
 
-// Check Admin Status
-exports.checkAdmin = async (req, res) => {
+// Example of checking a user's role
+exports.checkRole = async (req, res) => {
     const { uid } = req.params;
 
     if (!uid || typeof uid !== "string" || uid.length === 0) {
@@ -96,12 +79,20 @@ exports.checkAdmin = async (req, res) => {
     }
 
     try {
+        // Fetch user record by UID
         const userRecord = await admin.auth().getUser(uid);
-        const isAdmin = userRecord.customClaims && userRecord.customClaims.role === "admin";
 
-        res.status(200).json({ isAdmin });
+        // Check if user has the custom claim (role) set
+        const userRole = userRecord.customClaims?.role;
+        console.log(userRole);
+        // Check if the role exists and send it in the response
+        if (userRole) {
+            return res.status(200).json({ role: userRole });
+        } else {
+            return res.status(404).json({ error: "Role not found for user" });
+        }
     } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error("Error checking user role:", error);
 
         if (error.code === "auth/user-not-found") {
             return res.status(404).json({ error: "User not found" });
@@ -110,39 +101,6 @@ exports.checkAdmin = async (req, res) => {
     }
 };
 
-// Update User
-exports.updateUser = async (req, res) => {
-    const { uid } = req.params; // Get the Firebase UID from the request parameters
-    const updateData = req.body; // Get the updated data from the request body
-
-    try {
-        // Prepare the data for Firebase update
-        const firebaseUpdates = {};
-
-        // Only include fields that are present in the request body
-        if (updateData.email) firebaseUpdates.email = updateData.email;
-        if (updateData.displayName) firebaseUpdates.displayName = updateData.displayName;
-
-        // Update user in Firebase if there are fields to update
-        const updatedUser = await admin.auth().updateUser(uid, firebaseUpdates);
-
-        // Update user in MongoDB
-        const updatedDBUser = await User.findOneAndUpdate(
-            { firebaseUid: uid },
-            { ...updateData }, // Update with all fields provided
-            { new: true }
-        );
-
-        res.status(200).json({
-            message: "User updated successfully",
-            firebaseUser: updatedUser,
-            dbUser: updatedDBUser,
-        });
-    } catch (error) {
-        console.error("Error updating user:", error);
-        res.status(500).json({ error: error.message });
-    }
-};
 
 // Delete User
 exports.deleteUser = async (req, res) => {
@@ -162,6 +120,7 @@ exports.deleteUser = async (req, res) => {
 // Change User Role
 exports.changeUserRole = async (req, res) => {
     const { email, role } = req.body;
+    console.log("Received email:", email);
     try {
         // Find Firebase user by email
         const userRecord = await admin.auth().getUserByEmail(email);
@@ -170,16 +129,44 @@ exports.changeUserRole = async (req, res) => {
         // Set custom claims for the user
         await admin.auth().setCustomUserClaims(uid, { role });
 
-        // Optionally, update your local DB if needed
-        await User.findOneAndUpdate({ firebaseUid: uid }, { role }, { new: true });
 
-        // Respond with JSON instead of a plain string
         res.status(200).json({ message: `User role changed to ${role}` });
     } catch (error) {
-        // Log the error for debugging
         console.error("Error changing user role:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 
-        // Respond with an error message in JSON format
+// Update User
+exports.updateUser = async (req, res) => {
+    const { uid } = req.params; // Get the Firebase UID from the request parameters
+    const updateData = req.body; // Get the updated data from the request body
+
+    try {
+        // Prepare the data for Firebase update
+        const firebaseUpdates = {};
+
+        // Only include fields that are present in the request body
+        if (updateData.email) firebaseUpdates.email = updateData.email;
+        if (updateData.displayName)
+            firebaseUpdates.displayName = updateData.displayName;
+
+        // Update user in Firebase if there are fields to update
+        const updatedUser = await admin.auth().updateUser(uid, firebaseUpdates);
+
+        // Update user in MongoDB
+        const updatedDBUser = await User.findOneAndUpdate(
+            { firebaseUid: uid },
+            { ...updateData }, // Update with all fields provided
+            { new: true }
+        );
+        res.status(200).json({
+            message: "User updated successfully",
+            firebaseUser: updatedUser,
+            dbUser: updatedDBUser,
+        });
+    } catch (error) {
+        console.error("Error updating user:", error);
         res.status(500).json({ error: error.message });
     }
 };
