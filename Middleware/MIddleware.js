@@ -20,7 +20,7 @@ const serviceAccount = {
 // Initialize Firebase with credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://CarearCanvas.firebaseio.com'
+  databaseURL: ''
 });
 
 // Authentication Middleware

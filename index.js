@@ -18,11 +18,11 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json()); 
 
 // Import routes
 
-app.use( '/api' , userRoutes)
+app.use('/api' , userRoutes)
 
 //  Home route
 app.get("/", (req, res) => {
