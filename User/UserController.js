@@ -2,10 +2,10 @@ const admin = require("firebase-admin");
 const User = require("./UserSchema");
 
 exports.register = async (req, res) => {
-    const { email, password, name, role, uid } = req.body;
+    const { email, password, name, role, uid , phone , address , className } = req.body;
 
     console.log(req.body);
-    if (!email || !password || !name || !role || !uid) {
+    if (!email || !password || !name || !role || !uid ) {
         return res.status(400).json({ message: "Missing required fields" });
     }
     try {
@@ -16,6 +16,9 @@ exports.register = async (req, res) => {
             email,
             password,
             role,
+            phone,
+            address,
+            className,
             firebaseUid: uid,
         });
 
@@ -139,14 +142,13 @@ exports.changeUserRole = async (req, res) => {
 
 // Update User
 exports.updateUser = async (req, res) => {
-    const { uid } = req.params; // Get the Firebase UID from the request parameters
-    const updateData = req.body; // Get the updated data from the request body
+    const { uid } = req.params; 
+    const updateData = req.body; 
 
     try {
-        // Prepare the data for Firebase update
         const firebaseUpdates = {};
 
-        // Only include fields that are present in the request body
+     
         if (updateData.email) firebaseUpdates.email = updateData.email;
         if (updateData.displayName)
             firebaseUpdates.displayName = updateData.displayName;

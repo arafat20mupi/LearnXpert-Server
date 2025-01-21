@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const connectDB = require("./Config/dbConfig");
 require("dotenv").config();
 const userRoutes = require("./User/UserRoute");
+const resultRoute = require("./Result/ResultRoute");
 
 // Middleware
 app.use(bodyParser.json());
@@ -23,6 +24,7 @@ app.use(express.json());
 // Import routes
 
 app.use('/api' , userRoutes)
+app.use('/api' , resultRoute)
 
 //  Home route
 app.get("/", (req, res) => {
