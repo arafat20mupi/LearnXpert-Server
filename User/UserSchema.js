@@ -32,6 +32,15 @@ const UserSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
+        phone : {
+            type: String,
+        },
+        address : {
+            type: String,
+        },
+        className : {
+            type: String,
+        }
     },
     {
         timestamps: true, // Adds createdAt and updatedAt fields
