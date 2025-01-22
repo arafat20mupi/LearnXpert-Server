@@ -26,7 +26,7 @@ app.use('/api' , userRoutes)
 
 //  Home route
 app.get("/", (req, res) => {
-  res.send("hello Developer");
+  res.send("hello Developers");
 });
 
 
