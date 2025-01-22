@@ -4,9 +4,12 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const connectDB = require("./Config/dbConfig");
 require("dotenv").config();
+
+// Import routes
 const userRoutes = require("./User/UserRoute");
 const resultRoute = require("./Result/ResultRoute");
-
+const teacherRoute = require("./Teacher/TeacherRoute");
+const studentRoute = require('./Student/StudentRoute')
 // Middleware
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
@@ -25,6 +28,8 @@ app.use(express.json());
 
 app.use('/api' , userRoutes)
 app.use('/api' , resultRoute)
+app.use('/api' , teacherRoute)
+app.use('/api' , studentRoute)
 
 //  Home route
 app.get("/", (req, res) => {
