@@ -1,16 +1,27 @@
 const admin = require("firebase-admin");
 const User = require("./UserSchema");
+const StudentSchema = require("../Student/StudentSchema");
+const ParentSchema = require("../Parent/ParentSchema");
+const TeacherSchema = require("../Teacher/TeacherSchema");
+
 
 exports.register = async (req, res) => {
-    const { email, password, name, role, uid , phone , address , className } = req.body;
+    const { email, password, name, role, uid, phone, address, className } = req.body;
 
-    console.log(req.body);
-    if (!email || !password || !name || !role || !uid ) {
+    // Check for required fields
+    if (!email || !password || !name || !role || !uid) {
         return res.status(400).json({ message: "Missing required fields" });
     }
-    try {
 
-        // Create user in your MongoDB database
+    try {
+        // Verify Firebase UID
+        const firebaseUser = await admin.auth().getUser(uid);
+        if (!firebaseUser) {
+            return res.status(400).json({ message: "Invalid Firebase UID" });
+        }
+
+
+        // Create user in MongoDB
         const newUser = new User({
             name,
             email,
@@ -22,13 +33,56 @@ exports.register = async (req, res) => {
             firebaseUid: uid,
         });
 
+        // Create additional entry for students
+        if (role === "student") {
+            const newStudent = new StudentSchema({
+                className,
+                name,
+                email,
+                role,
+                phone,
+                address,
+                firebaseUid: uid,
+            });
+            await newStudent.save();
+        }
+
+        // Create additional entry for Teacher
+        if (role === "teacher") {
+            const newTeacher = new TeacherSchema({
+                name,
+                email,
+                role,
+                phone,
+                address,
+                firebaseUid: uid,
+            });
+            await newTeacher.save();
+        }
+
+        // Create additional entry for Parent
+        if (role === "parent") {
+            const newParent = new ParentSchema({
+                className,
+                name,
+                email,
+                role,
+                phone,
+                address,
+                firebaseUid: uid,
+            });
+            await newParent.save();
+        }
+
         await newUser.save();
         res.status(201).json({ message: "User registered successfully" });
+
     } catch (error) {
         console.error("Error during registration:", error);
         res.status(500).json({ message: "Server error during user registration" });
     }
-}
+};
+
 
 
 
@@ -123,7 +177,6 @@ exports.deleteUser = async (req, res) => {
 // Change User Role
 exports.changeUserRole = async (req, res) => {
     const { email, role } = req.body;
-    console.log("Received email:", email);
     try {
         // Find Firebase user by email
         const userRecord = await admin.auth().getUserByEmail(email);
@@ -131,7 +184,6 @@ exports.changeUserRole = async (req, res) => {
 
         // Set custom claims for the user
         await admin.auth().setCustomUserClaims(uid, { role });
-
 
         res.status(200).json({ message: `User role changed to ${role}` });
     } catch (error) {
@@ -142,20 +194,19 @@ exports.changeUserRole = async (req, res) => {
 
 // Update User
 exports.updateUser = async (req, res) => {
-    const { uid } = req.params; 
-    const updateData = req.body; 
+    const { uid } = req.params;
+    const updateData = req.body;
 
     try {
         const firebaseUpdates = {};
 
-     
+
         if (updateData.email) firebaseUpdates.email = updateData.email;
         if (updateData.displayName)
             firebaseUpdates.displayName = updateData.displayName;
 
         // Update user in Firebase if there are fields to update
         const updatedUser = await admin.auth().updateUser(uid, firebaseUpdates);
-
         // Update user in MongoDB
         const updatedDBUser = await User.findOneAndUpdate(
             { firebaseUid: uid },
