@@ -10,6 +10,8 @@ const userRoutes = require("./User/UserRoute");
 const resultRoute = require("./Result/ResultRoute");
 const teacherRoute = require("./Teacher/TeacherRoute");
 const studentRoute = require('./Student/StudentRoute')
+const parentRoute = require("./Parent/ParentRoute");
+
 // Middleware
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
@@ -30,6 +32,7 @@ app.use('/api' , userRoutes)
 app.use('/api' , resultRoute)
 app.use('/api' , teacherRoute)
 app.use('/api' , studentRoute)
+app.use('/api' , parentRoute)
 
 //  Home route
 app.get("/", (req, res) => {

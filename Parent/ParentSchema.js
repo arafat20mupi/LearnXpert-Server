@@ -28,12 +28,17 @@ const ParentSchema = new mongoose.Schema(
         },
         childrenName: {
             type: [String],
-        }
+        },
+        childrenRole: {
+            type: String,
+        },
+        childrenClass: {
+            type: String,
+        },
     },
     {
         timestamps: true, 
     }
 );
-
 
 module.exports = mongoose.model("parent", ParentSchema);
