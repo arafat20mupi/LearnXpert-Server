@@ -28,8 +28,10 @@ const StutentSchema = new mongoose.Schema(
         },
         className : {
             type: String,
+            default: "6",
+            enum: ["6", "7", "8", "9", "10"],
         },
-        roleNo : {
+        rollNo : {
             type: String,
         }
     },
