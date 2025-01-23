@@ -23,6 +23,7 @@ exports.postResult = async(req, res) => {
             res.status(200).json({success: true, message: "Result saved successfully"});
         } catch (error) {
             res.status(500).json({error: true, message: error})
+            console.log(error);
         }
 }
 
