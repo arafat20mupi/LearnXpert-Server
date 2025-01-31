@@ -11,6 +11,7 @@ const resultRoute = require("./Result/ResultRoute");
 const teacherRoute = require("./Teacher/TeacherRoute");
 const studentRoute = require('./Student/StudentRoute')
 const parentRoute = require("./Parent/ParentRoute");
+const admissionRoute = require('./Admission/AdmissionRoute');
 
 // Middleware
 app.use(bodyParser.json());
@@ -33,6 +34,7 @@ app.use('/api' , resultRoute)
 app.use('/api' , teacherRoute)
 app.use('/api' , studentRoute)
 app.use('/api' , parentRoute)
+app.use('/api' , admissionRoute);
 
 //  Home route
 app.get("/", (req, res) => {
