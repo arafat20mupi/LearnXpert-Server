@@ -10,7 +10,7 @@ const admissionSchema = mongoose.Schema({
     guardianContact: {type: String, required: true},
     guardianEmail: {type: String},
     address: {type: String, required: true},
-    status: {type: String, required: true, default: "Pending", enum:["Pending", "Approved"]},
+    status: {type: String, required: true, default: "Pending", enum:["Pending", "Approved", "Rejected"]},
 }, {timestamps: true});
 
 
