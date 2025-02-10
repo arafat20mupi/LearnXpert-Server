@@ -27,10 +27,20 @@ exports.getAdmissionData = async(req, res) => {
     }
 }
 
-exports.changeStatus = async(req, res) => {
+exports.admissionApprove = async(req, res) => {
     try {
         const {id} = req.params;
         const updateStatus = await AdmissionSchema.findOneAndUpdate({_id:id}, {$set:{status: "Approved"}}, {new: true});
+        res.status(200).json({message: "status updated" , update:[updateStatus]});
+    } catch (error) {
+        res.status(500).json({message: error.message})
+    }
+}
+
+exports.admissionReject = async(req, res) => {
+    try {
+        const {id} = req.params;
+        const updateStatus = await AdmissionSchema.findOneAndUpdate({_id:id}, {$set:{status: "Rejected"}}, {new: true});
         res.status(200).json({message: "status updated" , update:[updateStatus]});
     } catch (error) {
         res.status(500).json({message: error.message})
