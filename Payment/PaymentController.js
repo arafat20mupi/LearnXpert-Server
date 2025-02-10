@@ -1,5 +1,6 @@
 const PaymentSchema = require("./PaymentSchema");
 const Stripe = require('stripe');
+const bodyParser = require('body-parser');
 
 
 exports.postPayment = async(req, res) => {
@@ -51,8 +52,7 @@ exports.singlePaymentDetail = async(req, res) => {
 
 exports.studentPayment = async(req, res) => {
    try {
-        const {name, className, rollNo, email, month, year, duePayment} = req.body.info;
-
+        const {name, className, rollNo, email, firebaseUid, month, year, duePayment} = req.body.info;
 
         const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH");
       
@@ -68,17 +68,42 @@ exports.studentPayment = async(req, res) => {
                 quantity: 1,
             }],
             mode: "payment",
+            payment_method_types: ["card"],
             success_url: "http://localhost:5173/success",
             cancel_url: "http://localhost:5173/cancel",
         });
 
-        console.log(session.payment_status, session.id);
-        res.status(200).json({id: session.id});
+        res.status(200).json({id: session.id, firebaseUid, month, year});
+        console.log(session);
 
    } catch (error) {
         res.send('failed')
         console.log(error.message);
    }
+}
+
+exports.paymentWebhook = async(req, res) => {
+
+        console.log(req.body);
+    
+        const sig = req.headers["stripe-signature"];
+        const endpointSecret = "whsec_b4c33ba3bbaed5176ce1eaded67f1d17b0a8ab189970678c2be40eaa5f1134b7";
+
+        let event;
+
+            try {
+                const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
+                event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+                console.log(e);
+            } catch (err) {
+              return res.status(400).send(`Webhook Error: ${err.message}`);
+            }
+
+        if(event.type === "checkout.session.completed"){
+            const session = event.data.object;
+            console.log(session.id);
+        }
+       
 }
 
 exports.deleteSingle = async(req, res) => {
