@@ -1,6 +1,6 @@
 // UserRoutes.js
 const express = require("express");
-const { register, getAllUsers, deleteUser, changeUserRole,  updateUser, checkRole } = require("./UserController");
+const { register, getAllUsers, deleteUser, changeUserRole,  updateUser, checkRole, getSingleUser } = require("./UserController");
 const { authMiddleware, adminCheck } = require("../Middleware/MIddleware");
 
 
@@ -10,6 +10,8 @@ const route = express.Router();
 route.post("/register", register);
 
 route.get("/users", getAllUsers);
+
+route.get("/users/:firebaseUid", getSingleUser);
 
 
 // Delete User Route
