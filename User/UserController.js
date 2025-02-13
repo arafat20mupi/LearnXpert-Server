@@ -127,6 +127,22 @@ exports.getAllUsers = async (req, res) => {
     }
 };
 
+exports.getSingleUser = async(req, res) => {
+    try {
+        const {firebaseUid} = req.params;
+        const user = await User.findOne({ firebaseUid });
+        if(user){
+            res.status(200).json(user);
+        }else{
+            res.status(401).json({message: "not found"});
+        }
+        
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+        console.log(error.message);
+    }
+}
+
 // Example of checking a user's role
 exports.checkRole = async (req, res) => {
     const { uid } = req.params;

@@ -12,6 +12,20 @@ exports.getAllStudent = async (req, res) => {
     }
 }
 
+exports.getSingleStudent = async (req, res) => {
+    try {
+           
+           const {firebaseUid} = req.params;
+           const students = await studentSchema.findOne({firebaseUid});
+           res.status(200).json(students);
+           
+       } catch (error) {
+           res.status(500).json({ message: error.message });
+           console.log(error.message);
+       }
+}
+
+
 exports.deleteStudent = async (req, res) => {
     try {
         const { firebaseUid } = req.params;
