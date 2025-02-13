@@ -1,34 +1,41 @@
 const PaymentSchema = require("./PaymentSchema");
 const Stripe = require('stripe');
-      
+
 
 exports.postPayment = async (req, res) => {
     try {
         const { name, className, rollNo, email, firebaseUid, year, month, duePayment } = req.body.paymentDetail;
         const findStudent = await PaymentSchema.findOne({ firebaseUid });
+
         if (findStudent) {
             const hansMonth = findStudent.payment.some(item => item.month === month && item.year === year);
 
             if (hansMonth) {
-                res.status(200).json({ message: "month exists" })
-            } else {
-                const updatePayment = await PaymentSchema.findOneAndUpdate({ firebaseUid: findStudent.firebaseUid }, { $push: { payment: { month, year, duePayment } } })
-                res.status(200).json({ message: "month payment updated successfully", updatePayment })
+                return res.status(200).json({ message: "Payment for this month already added" });
             }
 
-        } else {
-            const payment = new PaymentSchema({
-                name, className, rollNo, email, firebaseUid, payment: [{ month, year, duePayment }]
-            })
-            await payment.save();
-            res.status(200).json({ message: "Payment detail added", payment })
+            const updatePayment = await PaymentSchema.findOneAndUpdate(
+                { firebaseUid: findStudent.firebaseUid },
+                { $push: { payment: { month, year, duePayment } } },
+                { new: true } 
+            );
+
+            return res.status(200).json({ message: "Payment data Added successfully", updatePayment });
         }
 
+        const payment = new PaymentSchema({
+            name, className, rollNo, email, firebaseUid, payment: [{ month, year, duePayment }]
+        });
+
+        await payment.save();
+        return res.status(200).json({ message: "Payment detail added", payment });
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
         console.log(error.message);
+        return res.status(500).json({ message: error.message });
     }
-}
+};
+
 
 exports.paymentDetails = async (req, res) => {
     try {
@@ -43,24 +50,38 @@ exports.singlePaymentDetail = async (req, res) => {
     try {
         const { firebaseUid } = req.params;
         const paymentDetails = await PaymentSchema.findOne({ firebaseUid });
+
+        if (!paymentDetails) {
+            return res.status(404).json({ message: "No payment details found" });
+        }
+
+        // ✅ payments কে descending order এ সাজানো (last added first)
+        paymentDetails.payment.sort((a, b) => {
+            if (a.year === b.year) {
+                return b.month - a.month; // একই বছরে হলে বড় month আগে আসবে
+            }
+            return b.year - a.year; // নতুন year আগে আসবে
+        });
+
         res.status(200).json(paymentDetails);
     } catch (error) {
-        res.status(500).json({message: error.message});
+        res.status(500).json({ message: error.message });
     }
-}
+};
 
-exports.studentPayment = async(req, res) => {
-   try {
-        const {name, className, rollNo, email, firebaseUid, month, year, duePayment} = req.body.info;
+
+exports.studentPayment = async (req, res) => {
+    try {
+        const { name, className, rollNo, email, firebaseUid, month, year, duePayment } = req.body.info;
 
 
         const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
-        
+
         const session = await stripe.checkout.sessions.create({
             line_items: [{
                 price_data: {
                     currency: "bdt",
-                    product_data:{
+                    product_data: {
                         name: name,
                     },
                     unit_amount: duePayment * 100,
@@ -78,36 +99,36 @@ exports.studentPayment = async(req, res) => {
             }
         });
 
-       
-        res.status(200).json({id: session.id, firebaseUid, month, year});
 
-   } catch (error) {
+        res.status(200).json({ id: session.id, firebaseUid, month, year });
+
+    } catch (error) {
         res.send('failed')
-   }
+    }
 }
 
-exports.getPaymentDetail = async(req, res) => {
+exports.getPaymentDetail = async (req, res) => {
     const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
     try {
         const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
-        
-        if(session.payment_status === "paid"){
-            
-            const {firebaseUid, month, year} = session.metadata;
-            const updatePayment = await PaymentSchema.findOneAndUpdate({firebaseUid, "payment.month": month, "payment.year": year}, {$set: {"payment.$.status": "Paid"}}, {new: true})
-            
-            res.status(200).json({message: "Payment status updated", updatePayment})
-        }else{
-            res.status(401).json({message: "Payment unpaid"})
+
+        if (session.payment_status === "paid") {
+
+            const { firebaseUid, month, year } = session.metadata;
+            const updatePayment = await PaymentSchema.findOneAndUpdate({ firebaseUid, "payment.month": month, "payment.year": year }, { $set: { "payment.$.status": "Paid" } }, { new: true })
+
+            res.status(200).json({ message: "Payment status updated", updatePayment })
+        } else {
+            res.status(401).json({ message: "Payment unpaid" })
         }
 
-        
-        
-      } catch (error) {
-        res.status(500).json({ error: error.message }); 
-      }
-  
-   
+
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+
+
 }
 
 
