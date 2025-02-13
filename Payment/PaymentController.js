@@ -1,7 +1,6 @@
 const PaymentSchema = require("./PaymentSchema");
 const Stripe = require('stripe');
-
-const stripe = new Stripe('your-secret-key-here');
+      
 
 exports.postPayment = async (req, res) => {
     try {
@@ -46,9 +45,71 @@ exports.singlePaymentDetail = async (req, res) => {
         const paymentDetails = await PaymentSchema.findOne({ firebaseUid });
         res.status(200).json(paymentDetails);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({message: error.message});
     }
 }
+
+exports.studentPayment = async(req, res) => {
+   try {
+        const {name, className, rollNo, email, firebaseUid, month, year, duePayment} = req.body.info;
+
+
+        const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
+        
+        const session = await stripe.checkout.sessions.create({
+            line_items: [{
+                price_data: {
+                    currency: "bdt",
+                    product_data:{
+                        name: name,
+                    },
+                    unit_amount: duePayment * 100,
+                },
+                quantity: 1,
+            }],
+            mode: "payment",
+            payment_method_types: ["card"],
+            success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: "http://localhost:5173/cancel",
+            metadata: {
+                firebaseUid: firebaseUid,
+                month: month,
+                year: year
+            }
+        });
+
+       
+        res.status(200).json({id: session.id, firebaseUid, month, year});
+
+   } catch (error) {
+        res.send('failed')
+   }
+}
+
+exports.getPaymentDetail = async(req, res) => {
+    const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
+    try {
+        const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+        
+        if(session.payment_status === "paid"){
+            
+            const {firebaseUid, month, year} = session.metadata;
+            const updatePayment = await PaymentSchema.findOneAndUpdate({firebaseUid, "payment.month": month, "payment.year": year}, {$set: {"payment.$.status": "Paid"}}, {new: true})
+            
+            res.status(200).json({message: "Payment status updated", updatePayment})
+        }else{
+            res.status(401).json({message: "Payment unpaid"})
+        }
+
+        
+        
+      } catch (error) {
+        res.status(500).json({ error: error.message }); 
+      }
+  
+   
+}
+
 
 exports.deleteSingle = async (req, res) => {
     try {
