@@ -1,7 +1,6 @@
 const PaymentSchema = require("./PaymentSchema");
 const Stripe = require('stripe');
-const bodyParser = require('body-parser');
-
+      
 
 exports.postPayment = async(req, res) => {
    try {
@@ -54,8 +53,9 @@ exports.studentPayment = async(req, res) => {
    try {
         const {name, className, rollNo, email, firebaseUid, month, year, duePayment} = req.body.info;
 
-        const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH");
-      
+
+        const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
+        
         const session = await stripe.checkout.sessions.create({
             line_items: [{
                 price_data: {
@@ -69,42 +69,47 @@ exports.studentPayment = async(req, res) => {
             }],
             mode: "payment",
             payment_method_types: ["card"],
-            success_url: "http://localhost:5173/success",
+            success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: "http://localhost:5173/cancel",
+            metadata: {
+                firebaseUid: firebaseUid,
+                month: month,
+                year: year
+            }
         });
 
+       
         res.status(200).json({id: session.id, firebaseUid, month, year});
-        console.log(session);
 
    } catch (error) {
         res.send('failed')
-        console.log(error.message);
    }
 }
 
-exports.paymentWebhook = async(req, res) => {
-
-        console.log(req.body);
-    
-        const sig = req.headers["stripe-signature"];
-        const endpointSecret = "whsec_b4c33ba3bbaed5176ce1eaded67f1d17b0a8ab189970678c2be40eaa5f1134b7";
-
-        let event;
-
-            try {
-                const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
-                event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-                console.log(e);
-            } catch (err) {
-              return res.status(400).send(`Webhook Error: ${err.message}`);
-            }
-
-        if(event.type === "checkout.session.completed"){
-            const session = event.data.object;
-            console.log(session.id);
+exports.getPaymentDetail = async(req, res) => {
+    const stripe = new Stripe("sk_test_51QPkuRGLRxtB32IDb3zrzdHnHX9INDYJ4dJDhllYyIlbVOugC297GsHb7uZgqJ4U83yK9ydUEyAd6ibZ7XTKOn7e00AJBU8XwH")
+    try {
+        const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
+        
+        if(session.payment_status === "paid"){
+            
+            const {firebaseUid, month, year} = session.metadata;
+            const updatePayment = await PaymentSchema.findOneAndUpdate({firebaseUid, "payment.month": month, "payment.year": year}, {$set: {"payment.$.status": "Paid"}}, {new: true})
+            
+            res.status(200).json({message: "Payment status updated", updatePayment})
+        }else{
+            res.status(401).json({message: "Payment unpaid"})
         }
-       
+
+        
+        
+      } catch (error) {
+        res.status(500).json({ error: error.message }); 
+      }
+  
+   
 }
+
 
 exports.deleteSingle = async(req, res) => {
     try {
