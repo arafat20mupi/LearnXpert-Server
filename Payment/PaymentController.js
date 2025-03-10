@@ -1,5 +1,5 @@
 const PaymentSchema = require("./PaymentSchema");
-const Stripe = require('stripe');
+const Stripe = require('stripe'); 
 
 
 exports.postPayment = async (req, res) => {
@@ -112,11 +112,24 @@ exports.getPaymentDetail = async (req, res) => {
     try {
         const session = await stripe.checkout.sessions.retrieve(req.params.sessionId);
 
-        if (session.payment_status === "paid") {
+        //console.log(session.metadata);
 
+        if (session.payment_status === "paid") {
+          
             const { firebaseUid, month, year } = session.metadata;
+
+            if(!firebaseUid || !month || !year){
+                res.status(401).json({message: 'metadata not found'})
+            }
+
+            console.log(firebaseUid, month, year);
+            
             const updatePayment = await PaymentSchema.findOneAndUpdate({ firebaseUid, "payment.month": month, "payment.year": year }, { $set: { "payment.$.status": "Paid" } }, { new: true })
 
+            if(!updatePayment){
+                res.status(401).json({message: "payment not updated"})
+            }
+            console.log("payment updated");
             res.status(200).json({ message: "Payment status updated", updatePayment })
         } else {
             res.status(401).json({ message: "Payment unpaid" })

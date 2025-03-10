@@ -17,7 +17,7 @@ exports.getSingleStudent = async (req, res) => {
            
            const {firebaseUid} = req.params;
            const students = await studentSchema.findOne({firebaseUid});
-           res.status(200).json(students);
+           res.status(200).json({success: true, students});
            
        } catch (error) {
            res.status(500).json({ message: error.message });
