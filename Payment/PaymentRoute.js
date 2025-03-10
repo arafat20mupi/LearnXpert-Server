@@ -11,4 +11,4 @@ router.get('/retrieve/:sessionId', getPaymentDetail);
 router.delete('/payment-delete-all', deleteAll);
 router.delete('/payment-single-delete/:firebaseUid', deleteSingle);
 
-module.exports = router;
+module.exports = router; 
