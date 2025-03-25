@@ -33,6 +33,10 @@ const StutentSchema = new mongoose.Schema(
         },
         rollNo : {
             type: String,
+        },
+        point : {
+            type: Number,
+            default: 0,
         }
     },
     {
