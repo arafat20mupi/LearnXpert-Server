@@ -14,6 +14,7 @@ const parentRoute = require("./Parent/ParentRoute");
 const admissionRoute = require('./Admission/AdmissionRoute');
 const paymentRoute = require('./Payment/PaymentRoute');
 const classScheduleRouter = require('./ClassSchedule/ClassScheduleRoute');
+const quizRouter = require('./quiz/QuizRoute');
 
 // Middleware
 app.use(bodyParser.json());
@@ -39,6 +40,7 @@ app.use('/api' , parentRoute)
 app.use('/api' , admissionRoute);
 app.use('/api', paymentRoute);
 app.use('/api', classScheduleRouter);
+app.use('/api', quizRouter);
 
 //  Home route
 app.get("/", (req, res) => {

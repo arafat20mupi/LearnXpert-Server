@@ -34,9 +34,12 @@ const StutentSchema = new mongoose.Schema(
         rollNo : {
             type: String,
         },
-        point : {
-            type: Number,
-            default: 0,
+        quizScore : {
+            score: {
+                type: Number,
+                default: 0
+            },
+            questionsAnswered: Array, 
         }
     },
     {

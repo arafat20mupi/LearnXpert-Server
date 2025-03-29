@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
-const studentSchema = require('./StudentSchema')
+const studentSchema = require('./StudentSchema');
+const StudentSchema = require("./StudentSchema");
 
 exports.getAllStudent = async (req, res) => {
     try {
@@ -71,4 +72,31 @@ exports.updateStudent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.addQuizScore = async(req, res) => {
+    try {
+        const {firebaseUid, totalScore, tenQuestions} = req.body;
+
+        const questions = tenQuestions.map(q => q.question)
+        const updateQuizScore = await StudentSchema.findOneAndUpdate({firebaseUid}, {$inc: {"quizScore.score": totalScore}, $push: {"quizScore.questionsAnswered": {$each: questions}}}, {new: true});
+
+        console.log(updateQuizScore);
+    } catch (error) {
+        
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.removeQuizScore = async(req, res) => {
+    try {
+        const {firebaseUid} = req.params;
+
+       
+        const updateQuizScore = await StudentSchema.findOneAndUpdate({firebaseUid}, {$set: {"quizScore.score": 0, "quizScore.questionsAnswered": []}}, {new: true});
+        res.status(200).json({suceess: true, message: "QuizScore removed"})
+    } catch (error) {
+        
+        res.status(500).json({ message: error.message });
+    }
+}
 
