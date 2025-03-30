@@ -15,6 +15,7 @@ const admissionRoute = require('./Admission/AdmissionRoute');
 const paymentRoute = require('./Payment/PaymentRoute');
 const classScheduleRouter = require('./ClassSchedule/ClassScheduleRoute');
 const quizRouter = require('./quiz/QuizRoute');
+const OnlioneClassRoute = require('./Class/ClassRoute');
 
 // Middleware
 app.use(bodyParser.json());
@@ -28,19 +29,20 @@ app.use(
   })
 );
 
-app.use(express.json()); 
+app.use(express.json());
 
 // Import routes
 
-app.use('/api' , userRoutes)
-app.use('/api' , resultRoute)
-app.use('/api' , teacherRoute)
-app.use('/api' , studentRoute)
-app.use('/api' , parentRoute)
-app.use('/api' , admissionRoute);
+app.use('/api', userRoutes)
+app.use('/api', resultRoute)
+app.use('/api', teacherRoute)
+app.use('/api', studentRoute)
+app.use('/api', parentRoute)
+app.use('/api', admissionRoute);
 app.use('/api', paymentRoute);
 app.use('/api', classScheduleRouter);
 app.use('/api', quizRouter);
+app.use('/api', OnlioneClassRoute);
 
 //  Home route
 app.get("/", (req, res) => {
